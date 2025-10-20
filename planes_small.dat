@@ -1,0 +1,57 @@
+Fokker 100,100,F100
+BAe 146,146,\N
+Airbus A318,318,A318
+Airbus A319,319,A319
+Airbus A320,320,A320
+Airbus A321,321,A321
+Airbus A330,330,\N
+Airbus A330-200,332,A332
+Airbus A330-300,333,A333
+Airbus A340-200,342,A342
+Airbus A340-300,343,A343
+Airbus A340-600,346,A346
+Boeing 717,717,B712
+Boeing 737-300,733,B733
+Boeing 737-400,734,B734
+Boeing 737-500,735,B735
+Boeing 737-600,736,B736
+Boeing 737,737,\N
+Boeing 737-800,738,B738
+Boeing 737-900,739,B739
+Boeing 737-700,73G,B737
+Boeing 747-400,744,B744
+Boeing 757-200,752,B752
+Boeing 757,757,\N
+Boeing 767-300,763,B763
+Boeing 767-400,764,B764
+Boeing 767,767,\N
+Boeing 777,777,\N
+Boeing 777-300ER,77W,B77W
+Boeing 787-8,788,B788
+Avro RJ85,AR8,RJ85
+Aerospatiale/Alenia ATR 42-300,AT4,AT43
+Aerospatiale/Alenia ATR 42-500,AT5,AT45
+Aerospatiale/Alenia ATR 72,AT7,AT72
+Aerospatiale/Alenia ATR 42-600,ATR,AT46
+Canadair Regional Jet 200,CR2,CRJ2
+Canadair Regional Jet 700,CR7,CRJ7
+Canadair Regional Jet 900,CR9,CRJ9
+De Havilland Canada DHC-8-200 Dash 8 / 8Q,DH2,DH8B
+De Havilland Canada DHC-8-300 Dash 8,DH3,DH8C
+De Havilland Canada DHC-8-400 Dash 8Q,DH4,DH8D
+De Havilland Canada DHC-2 Beaver,DHP,DHC2
+De Havilland Canada DHC-6 Twin Otter,DHT,DHC6
+Embraer 170,E70,E170
+Embraer 175,E75,\N
+Embraer 190,E90,E190
+Embraer 195,E95,E195
+Embraer EMB 120 Brasilia,EM2,E120
+Embraer RJ145,ER4,E145
+Embraer RJ140,ERD,E135
+British Aerospace Jetstream 41,J41,JS41
+McDonnell Douglas MD-11,M11,MD11
+McDonnell Douglas MD-83,M83,MD83
+McDonnell Douglas MD-88,M88,MD88
+McDonnell Douglas MD-90,M90,MD90
+Piper PA-46,PAG,PA46
+Saab SF340A/B,SF3,SF34
