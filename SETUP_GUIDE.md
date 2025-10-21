@@ -2,10 +2,6 @@
 
 This guide will walk you through setting up PostgreSQL and loading your airline data from .dat files.
 
-## Prerequisites
-- Windows operating system
-- Administrator access
-
 ---
 
 ## Step 1: Verify that postgres is installed
@@ -187,28 +183,12 @@ LIMIT 10;
 
 ### 6.2 To Reconnect Later
 ```bash
-psql -U postgres -d jet2holidays
+psql -d jet2holidays
 ```
 
 ---
 
 ## Troubleshooting
-
-### Issue: "psql: command not found"
-**Solution:** Add PostgreSQL to your PATH:
-1. Search "Environment Variables" in Windows
-2. Click "Environment Variables"
-3. Under "System variables", find "Path"
-4. Click "Edit"
-5. Click "New"
-6. Add: `C:\Program Files\PostgreSQL\16\bin`
-7. Click OK and restart Command Prompt
-
-### Issue: "FATAL: password authentication failed"
-**Solution:** You entered the wrong password. Reset it:
-1. Open pgAdmin 4
-2. Right-click on the server → Properties
-3. Use the password you set during installation
 
 ### Issue: "ERROR: duplicate key value violates unique constraint"
 **Solution:** You've already loaded the data. To reload:
@@ -223,13 +203,6 @@ DELETE FROM Countries;
 
 ### Issue: Foreign key constraint violations
 **Solution:** Make sure you load tables in the correct order (see Step 4.2)
-
-### Issue: File path not found in \COPY command
-**Solution:**
-- Use forward slashes `/` instead of backslashes `\` in the path
-- Use absolute paths, not relative
-- Correct: `C:/Users/mitan/Jet2Holidays/countries_small.dat`
-- Incorrect: `C:\Users\mitan\Jet2Holidays\countries_small.dat`
 
 ---
 
@@ -247,49 +220,3 @@ DELETE FROM Countries;
 
 ---
 
-## Next Steps
-
-Once your data is loaded, you can:
-- Write SQL queries to analyze airline routes
-- Create views for common queries
-- Add indexes for better performance
-- Connect to the database from Python, Java, or other applications
-
----
-
-## Quick Reference: Complete Loading Script
-
-Save this as a file if you need to reload data later:
-
-```sql
--- Connect to database first: psql -U postgres -d jet2holidays
-
--- Clear existing data (if reloading)
-DELETE FROM Routes;
-DELETE FROM Planes;
-DELETE FROM Airports;
-DELETE FROM Airlines;
-DELETE FROM Countries;
-
--- Load data in correct order
-\COPY Countries(Name, ISO_Code, DAFIF_Code) FROM 'C:/Users/mitan/Jet2Holidays/countries_small.dat' WITH (FORMAT csv, DELIMITER ',', NULL '\N');
-
-\COPY Airlines(AirlineID, Name, Alias, IATA, ICAO, Callsign, Country, Active) FROM 'C:/Users/mitan/Jet2Holidays/airlines_small.dat' WITH (FORMAT csv, DELIMITER ',', NULL '\N');
-
-\COPY Airports(AirportID, Name, City, Country, IATA, ICAO, Latitude, Longitude, Altitude, Timezone, DST, TzDatabaseTimezone, TYPE, Source) FROM 'C:/Users/mitan/Jet2Holidays/airports_small.dat' WITH (FORMAT csv, DELIMITER ',', NULL '\N');
-
-\COPY Planes(Name, IATACode, ICAOCode) FROM 'C:/Users/mitan/Jet2Holidays/planes_small.dat' WITH (FORMAT csv, DELIMITER ',', NULL '\N');
-
-\COPY Routes(Airline, AirlineID, SourceAirport, SourceAirportID, DestinationAirport, DestinationAirportID, Codeshare, Stops, Equipment) FROM 'C:/Users/mitan/Jet2Holidays/routes_small.dat' WITH (FORMAT csv, DELIMITER ',', NULL '\N');
-
--- Verify counts
-SELECT 'Countries' as table_name, COUNT(*) as row_count FROM Countries
-UNION ALL
-SELECT 'Airlines', COUNT(*) FROM Airlines
-UNION ALL
-SELECT 'Airports', COUNT(*) FROM Airports
-UNION ALL
-SELECT 'Planes', COUNT(*) FROM Planes
-UNION ALL
-SELECT 'Routes', COUNT(*) FROM Routes;
-```
