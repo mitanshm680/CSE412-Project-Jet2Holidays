@@ -86,6 +86,30 @@ app.get('/api/routes', async (req, res) => {
   }
 });
 
+// Airlines lookup
+app.get('/api/airlines', async (req, res) => {
+  try {
+    const sql = `SELECT AirlineID as airlineId, Name as name, Alias as alias, IATA as iata, ICAO as icao, Callsign as callsign, Country as country, Active as active FROM Airlines ORDER BY Name`;
+    const result = await query(sql);
+    res.json({ airlines: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'internal_error' });
+  }
+});
+
+// Airports lookup
+app.get('/api/airports', async (req, res) => {
+  try {
+    const sql = `SELECT AirportID as airportId, Name as name, City as city, Country as country, IATA as iata, ICAO as icao FROM Airports ORDER BY Name`;
+    const result = await query(sql);
+    res.json({ airports: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'internal_error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });

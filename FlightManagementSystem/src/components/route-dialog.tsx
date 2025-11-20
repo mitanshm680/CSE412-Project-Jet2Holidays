@@ -12,18 +12,16 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
 import { X } from "lucide-react";
-import {
-  Route,
-  mockAirlines,
-  mockAirports,
-  planeTypes,
-} from "../lib/mock-data";
+import { Route, Airline, Airport, PlaneType } from "../lib/types";
 
 interface RouteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   route?: Route | null;
   onSave: (route: Route) => void;
+  airlines: Airline[];
+  airports: Airport[];
+  planeTypes: PlaneType[];
 }
 
 export function RouteDialog({
@@ -31,6 +29,9 @@ export function RouteDialog({
   onOpenChange,
   route,
   onSave,
+  airlines,
+  airports,
+  planeTypes,
 }: RouteDialogProps) {
   const [formData, setFormData] = useState({
     airline: "",
@@ -53,8 +54,8 @@ export function RouteDialog({
 
   useEffect(() => {
     if (route) {
-      const airline = mockAirlines.find(
-        (a) => a.iata === route.airline,
+      const airline = (airlines || []).find(
+        (a) => a.iata === route.airline || String(a.airlineId) === route.airlineId,
       );
 
       setFormData({
@@ -75,43 +76,43 @@ export function RouteDialog({
     }
   }, [route, open]);
 
-  const airlineSuggestions = mockAirlines.filter(
+  const airlineSuggestions = (airlines || []).filter(
     (airline) =>
-      airline.name
+      (airline.name || '')
         .toLowerCase()
         .includes(formData.airline.toLowerCase()) ||
-      airline.iata
+      (airline.iata || '')
         .toLowerCase()
         .includes(formData.airline.toLowerCase()),
   );
 
-  const sourceSuggestions = mockAirports.filter(
+  const sourceSuggestions = (airports || []).filter(
     (airport) =>
-      airport.name
+      (airport.name || '')
         .toLowerCase()
         .includes(formData.sourceAirport.toLowerCase()) ||
-      airport.iata
+      (airport.iata || '')
         .toLowerCase()
         .includes(formData.sourceAirport.toLowerCase()) ||
-      airport.city
+      (airport.city || '')
         .toLowerCase()
         .includes(formData.sourceAirport.toLowerCase()),
   );
 
-  const destSuggestions = mockAirports.filter(
+  const destSuggestions = (airports || []).filter(
     (airport) =>
-      airport.name
+      (airport.name || '')
         .toLowerCase()
         .includes(formData.destinationAirport.toLowerCase()) ||
-      airport.iata
+      (airport.iata || '')
         .toLowerCase()
         .includes(formData.destinationAirport.toLowerCase()) ||
-      airport.city
+      (airport.city || '')
         .toLowerCase()
         .includes(formData.destinationAirport.toLowerCase()),
   );
 
-  const equipmentSuggestions = planeTypes.filter((plane) =>
+  const equipmentSuggestions = (planeTypes || []).filter((plane) =>
     plane
       .toLowerCase()
       .includes(formData.equipment.toLowerCase()),
@@ -128,22 +129,22 @@ export function RouteDialog({
       return;
     }
 
-    const airline = mockAirlines.find(
+    const airline = (airlines || []).find(
       (a) =>
-        a.name.toLowerCase() ===
+        (a.name || '').toLowerCase() ===
           formData.airline.toLowerCase() ||
-        a.iata.toLowerCase() === formData.airline.toLowerCase(),
+        (a.iata || '').toLowerCase() === formData.airline.toLowerCase(),
     );
 
-    const sourceAirport = mockAirports.find(
+    const sourceAirport = (airports || []).find(
       (a) =>
-        a.iata.toLowerCase() ===
+        (a.iata || '').toLowerCase() ===
         formData.sourceAirport.toLowerCase(),
     );
 
-    const destAirport = mockAirports.find(
+    const destAirport = (airports || []).find(
       (a) =>
-        a.iata.toLowerCase() ===
+        (a.iata || '').toLowerCase() ===
         formData.destinationAirport.toLowerCase(),
     );
 
@@ -153,12 +154,12 @@ export function RouteDialog({
 
     const newRoute: Route = {
       id: route?.id || Date.now().toString(),
-      airline: airline.iata,
-      airlineId: airline.airlineId,
-      sourceAirport: sourceAirport.iata,
-      sourceAirportId: sourceAirport.airportId,
-      destinationAirport: destAirport.iata,
-      destinationAirportId: destAirport.airportId,
+      airline: airline?.iata || '',
+      airlineId: String(airline?.airlineId || ''),
+      sourceAirport: sourceAirport?.iata || '',
+      sourceAirportId: String(sourceAirport?.airportId || ''),
+      destinationAirport: destAirport?.iata || '',
+      destinationAirportId: String(destAirport?.airportId || ''),
       codeshare: route?.codeshare || "",
       stops: parseInt(formData.stops),
       equipment: formData.equipment,
@@ -215,10 +216,10 @@ export function RouteDialog({
                     <div
                       key={airline.airlineId}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onMouseDown={() => {
+                        onMouseDown={() => {
                         setFormData({
                           ...formData,
-                          airline: airline.name,
+                          airline: airline.name || (airline.iata || ''),
                         });
                         setShowAirlineSuggestions(false);
                       }}
@@ -266,10 +267,10 @@ export function RouteDialog({
                     <div
                       key={airport.airportId}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onMouseDown={() => {
+                        onMouseDown={() => {
                         setFormData({
                           ...formData,
-                          sourceAirport: airport.iata,
+                          sourceAirport: airport.iata || String(airport.airportId || ''),
                         });
                         setShowSourceSuggestions(false);
                       }}
@@ -317,10 +318,10 @@ export function RouteDialog({
                     <div
                       key={airport.airportId}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onMouseDown={() => {
+                        onMouseDown={() => {
                         setFormData({
                           ...formData,
-                          destinationAirport: airport.iata,
+                          destinationAirport: airport.iata || String(airport.airportId || ''),
                         });
                         setShowDestSuggestions(false);
                       }}

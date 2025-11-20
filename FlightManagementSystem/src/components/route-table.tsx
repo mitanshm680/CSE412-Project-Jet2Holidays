@@ -4,16 +4,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
-import { Route, mockAirports, mockAirlines } from '../lib/mock-data';
+import { Route, Airline, Airport, PlaneType } from '../lib/types';
 import { ArrowRight, Plane, ChevronLeft, ChevronRight, Plus, Trash2, Pencil } from 'lucide-react';
 import { RouteDialog } from './route-dialog';
 
 interface RouteTableProps {
   routes: Route[];
   onRoutesChange: (routes: Route[]) => void;
+  airlines: Airline[];
+  airports: Airport[];
+  planeTypes: PlaneType[];
 }
 
-export function RouteTable({ routes, onRoutesChange }: RouteTableProps) {
+export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTypes }: RouteTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
@@ -157,9 +160,9 @@ export function RouteTable({ routes, onRoutesChange }: RouteTableProps) {
               </TableHeader>
               <TableBody>
                 {currentRoutes.map((route) => {
-                  const sourceAirport = mockAirports.find(a => a.iata === route.sourceAirport);
-                  const destAirport = mockAirports.find(a => a.iata === route.destinationAirport);
-                  const airline = mockAirlines.find(a => a.iata === route.airline);
+                  const sourceAirport = (airports || []).find(a => a.iata === route.sourceAirport || String(a.airportId) === route.sourceAirportId);
+                  const destAirport = (airports || []).find(a => a.iata === route.destinationAirport || String(a.airportId) === route.destinationAirportId);
+                  const airline = (airlines || []).find(a => a.iata === route.airline || String(a.airlineId) === route.airlineId);
                   
                   return (
                     <TableRow key={route.id}>
@@ -258,6 +261,9 @@ export function RouteTable({ routes, onRoutesChange }: RouteTableProps) {
         onOpenChange={setDialogOpen}
         route={editingRoute}
         onSave={handleSave}
+        airlines={airlines}
+        airports={airports}
+        planeTypes={planeTypes}
       />
     </>
   );

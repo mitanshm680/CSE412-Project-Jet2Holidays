@@ -4,13 +4,17 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Search, X } from 'lucide-react';
-import { mockRoutes, mockAirlines, mockAirports, planeTypes } from '../lib/mock-data';
+import { Route, Airline, Airport, PlaneType } from '../lib/types';
 
 interface FlightSearchProps {
-  onSearch: (results: any[]) => void;
+  onSearch: (results: Route[]) => void;
+  allRoutes: Route[];
+  airlines: Airline[];
+  airports: Airport[];
+  planeTypes: PlaneType[];
 }
 
-export function FlightSearch({ onSearch }: FlightSearchProps) {
+export function FlightSearch({ onSearch, allRoutes, airlines, airports, planeTypes }: FlightSearchProps) {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [selectedAirline, setSelectedAirline] = useState('');
@@ -18,32 +22,32 @@ export function FlightSearch({ onSearch }: FlightSearchProps) {
   const [showAirlineSuggestions, setShowAirlineSuggestions] = useState(false);
   const [showPlaneSuggestions, setShowPlaneSuggestions] = useState(false);
 
-  const airlineSuggestions = mockAirlines.filter(airline =>
-    airline.name.toLowerCase().includes(selectedAirline.toLowerCase()) ||
-    airline.iata.toLowerCase().includes(selectedAirline.toLowerCase())
+  const airlineSuggestions = (airlines || []).filter(airline =>
+    (airline.name || '').toLowerCase().includes(selectedAirline.toLowerCase()) ||
+    (airline.iata || '').toLowerCase().includes(selectedAirline.toLowerCase())
   );
 
-  const planeSuggestions = planeTypes.filter(plane =>
+  const planeSuggestions = (planeTypes || []).filter(plane =>
     plane.toLowerCase().includes(selectedPlane.toLowerCase())
   );
 
   const handleSearch = () => {
     // If no filters are set, return all routes
     if (!origin.trim() && !destination.trim() && !selectedAirline.trim() && !selectedPlane.trim()) {
-      onSearch(mockRoutes);
+      onSearch(allRoutes);
       return;
     }
 
-    let results = [...mockRoutes];
+    let results = [...allRoutes];
 
     // Filter by origin
     if (origin) {
       const searchTerm = origin.toLowerCase();
       results = results.filter(route => {
-        const airport = mockAirports.find(a => a.iata === route.sourceAirport);
+        const airport = (airports || []).find(a => a.iata === route.sourceAirport);
         return route.sourceAirport.toLowerCase().includes(searchTerm) ||
-               airport?.city.toLowerCase().includes(searchTerm) ||
-               airport?.name.toLowerCase().includes(searchTerm);
+               (airport?.city || '').toLowerCase().includes(searchTerm) ||
+               (airport?.name || '').toLowerCase().includes(searchTerm);
       });
     }
 
@@ -51,26 +55,26 @@ export function FlightSearch({ onSearch }: FlightSearchProps) {
     if (destination) {
       const searchTerm = destination.toLowerCase();
       results = results.filter(route => {
-        const airport = mockAirports.find(a => a.iata === route.destinationAirport);
+        const airport = (airports || []).find(a => a.iata === route.destinationAirport);
         return route.destinationAirport.toLowerCase().includes(searchTerm) ||
-               airport?.city.toLowerCase().includes(searchTerm) ||
-               airport?.name.toLowerCase().includes(searchTerm);
+               (airport?.city || '').toLowerCase().includes(searchTerm) ||
+               (airport?.name || '').toLowerCase().includes(searchTerm);
       });
     }
 
     // Filter by airline
     if (selectedAirline) {
       results = results.filter(route => {
-        const airline = mockAirlines.find(a => a.iata === route.airline);
-        return airline?.name.toLowerCase().includes(selectedAirline.toLowerCase()) ||
-               airline?.iata.toLowerCase().includes(selectedAirline.toLowerCase());
+        const airline = (airlines || []).find(a => a.iata === route.airline || String(a.airlineId) === route.airlineId);
+        return (airline?.name || '').toLowerCase().includes(selectedAirline.toLowerCase()) ||
+               (airline?.iata || '').toLowerCase().includes(selectedAirline.toLowerCase());
       });
     }
 
     // Filter by plane type
     if (selectedPlane) {
       results = results.filter(route =>
-        route.equipment.toLowerCase().includes(selectedPlane.toLowerCase())
+        (route.equipment || '').toLowerCase().includes(selectedPlane.toLowerCase())
       );
     }
 
@@ -82,7 +86,7 @@ export function FlightSearch({ onSearch }: FlightSearchProps) {
     setDestination('');
     setSelectedAirline('');
     setSelectedPlane('');
-    onSearch(mockRoutes);
+    onSearch(allRoutes);
   };
 
   return (
@@ -147,7 +151,7 @@ export function FlightSearch({ onSearch }: FlightSearchProps) {
                     key={airline.airlineId}
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onMouseDown={() => {
-                      setSelectedAirline(airline.name);
+                      setSelectedAirline(airline.name || (airline.iata || ''));
                       setShowAirlineSuggestions(false);
                     }}
                   >

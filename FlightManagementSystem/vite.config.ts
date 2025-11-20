@@ -56,5 +56,9 @@
     server: {
       port: 3000,
       open: true,
+      // Proxy API requests during development to the backend server
+      proxy: {
+        '/api': 'http://localhost:4000',
+      },
     },
   });
