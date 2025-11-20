@@ -28,8 +28,9 @@ export function FlightSearch({ onSearch }: FlightSearchProps) {
   );
 
   const handleSearch = () => {
-    // Validate required fields
-    if (!origin.trim() || !destination.trim()) {
+    // If no filters are set, return all routes
+    if (!origin.trim() && !destination.trim() && !selectedAirline.trim() && !selectedPlane.trim()) {
+      onSearch(mockRoutes);
       return;
     }
 
@@ -81,7 +82,7 @@ export function FlightSearch({ onSearch }: FlightSearchProps) {
     setDestination('');
     setSelectedAirline('');
     setSelectedPlane('');
-    onSearch([]);
+    onSearch(mockRoutes);
   };
 
   return (

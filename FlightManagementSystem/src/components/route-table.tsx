@@ -166,7 +166,7 @@ export function RouteTable({ routes, onRoutesChange }: RouteTableProps) {
                       <TableCell>
                         <Checkbox
                           checked={selectedRows.has(route.id)}
-                          onCheckedChange={(checked) => handleSelectRow(route.id, checked as boolean)}
+                          onCheckedChange={(checked: boolean) => handleSelectRow(route.id, checked as boolean)}
                         />
                       </TableCell>
                       <TableCell>

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { FlightSearch } from './components/flight-search';
 import { RouteTable } from './components/route-table';
 import { Plane } from 'lucide-react';
-import { Route } from './lib/mock-data';
+import { Route, mockRoutes } from './lib/mock-data';
 
 export default function App() {
-  const [searchResults, setSearchResults] = useState<Route[]>([]);
+  // By default, show all routes (paginated client-side by RouteTable)
+  const [searchResults, setSearchResults] = useState<Route[]>(mockRoutes);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
