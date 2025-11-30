@@ -9,6 +9,24 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 
+// Logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+
+  // Log request body for POST/PUT/PATCH/DELETE
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && Object.keys(req.body).length > 0) {
+    console.log('  Body:', JSON.stringify(req.body, null, 2));
+  }
+
+  // Log query params if they exist
+  if (Object.keys(req.query).length > 0) {
+    console.log('  Query:', JSON.stringify(req.query));
+  }
+
+  next();
+});
+
 // Return all routes (joined info). Useful for frontend that wants full dataset.
 app.get('/api/all-routes', async (req, res) => {
   try {
@@ -89,7 +107,7 @@ app.get('/api/routes', async (req, res) => {
 // Airlines lookup
 app.get('/api/airlines', async (req, res) => {
   try {
-    const sql = `SELECT AirlineID as airlineId, Name as name, Alias as alias, IATA as iata, ICAO as icao, Callsign as callsign, Country as country, Active as active FROM Airlines ORDER BY Name`;
+    const sql = `SELECT AirlineID as "airlineId", Name as "name", Alias as "alias", IATA as "iata", ICAO as "icao", Callsign as "callsign", Country as "country", Active as "active" FROM Airlines ORDER BY Name`;
     const result = await query(sql);
     res.json({ airlines: result.rows });
   } catch (err) {
@@ -101,12 +119,162 @@ app.get('/api/airlines', async (req, res) => {
 // Airports lookup
 app.get('/api/airports', async (req, res) => {
   try {
-    const sql = `SELECT AirportID as airportId, Name as name, City as city, Country as country, IATA as iata, ICAO as icao FROM Airports ORDER BY Name`;
+    const sql = `SELECT AirportID as "airportId", Name as "name", City as "city", Country as "country", IATA as "iata", ICAO as "icao" FROM Airports ORDER BY Name`;
     const result = await query(sql);
     res.json({ airports: result.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'internal_error' });
+  }
+});
+
+// CREATE: Add a new route
+app.post('/api/routes', async (req, res) => {
+  try {
+    const {
+      airline,
+      airlineId,
+      sourceAirport,
+      sourceAirportId,
+      destinationAirport,
+      destinationAirportId,
+      codeshare,
+      stops,
+      equipment
+    } = req.body;
+
+    console.log(`✅ Creating new route: ${airline} ${sourceAirport} → ${destinationAirport} (${equipment})`);
+
+    // Validate required fields
+    if (!airlineId || !sourceAirportId || !destinationAirportId || !equipment) {
+      console.log('❌ Validation failed: Missing required fields');
+      return res.status(400).json({
+        error: 'Missing required fields: airlineId, sourceAirportId, destinationAirportId, equipment'
+      });
+    }
+
+    const sql = `INSERT INTO Routes
+      (Airline, AirlineID, SourceAirport, SourceAirportID,
+       DestinationAirport, DestinationAirportID, Codeshare, Stops, Equipment)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *`;
+
+    const params = [
+      airline || null,
+      airlineId,
+      sourceAirport || null,
+      sourceAirportId,
+      destinationAirport || null,
+      destinationAirportId,
+      codeshare || null,
+      stops || 0,
+      equipment
+    ];
+
+    const result = await query(sql, params);
+    console.log(`✅ Route created successfully:`, result.rows[0]);
+    res.status(201).json({ message: 'Route created', route: result.rows[0] });
+  } catch (err) {
+    console.error('❌ Error creating route:', err.message);
+    if (err.code === '23505') {
+      res.status(409).json({ error: 'Route already exists with this combination' });
+    } else if (err.code === '23503') {
+      res.status(400).json({ error: 'Invalid airline, airport, or equipment reference' });
+    } else {
+      res.status(500).json({ error: 'internal_error', details: err.message });
+    }
+  }
+});
+
+// UPDATE: Modify an existing route
+app.put('/api/routes', async (req, res) => {
+  try {
+    const {
+      airlineId,
+      sourceAirportId,
+      destinationAirportId,
+      equipment,
+      newStops,
+      newCodeshare
+    } = req.body;
+
+    console.log(`🔄 Updating route: AirlineID=${airlineId}, SourceID=${sourceAirportId}, DestID=${destinationAirportId}, Equipment=${equipment}`);
+
+    // Validate required fields for composite key
+    if (!airlineId || !sourceAirportId || !destinationAirportId || !equipment) {
+      console.log('❌ Validation failed: Missing composite key fields');
+      return res.status(400).json({
+        error: 'Missing required fields for route identification: airlineId, sourceAirportId, destinationAirportId, equipment'
+      });
+    }
+
+    const sql = `UPDATE Routes
+      SET Stops = $1, Codeshare = $2
+      WHERE AirlineID = $3
+        AND SourceAirportID = $4
+        AND DestinationAirportID = $5
+        AND Equipment = $6
+      RETURNING *`;
+
+    const params = [
+      newStops !== undefined ? newStops : 0,
+      newCodeshare || null,
+      airlineId,
+      sourceAirportId,
+      destinationAirportId,
+      equipment
+    ];
+
+    const result = await query(sql, params);
+
+    if (result.rows.length === 0) {
+      console.log('❌ Route not found');
+      res.status(404).json({ error: 'Route not found' });
+    } else {
+      console.log(`✅ Route updated successfully:`, result.rows[0]);
+      res.json({ message: 'Route updated', route: result.rows[0] });
+    }
+  } catch (err) {
+    console.error('❌ Error updating route:', err.message);
+    res.status(500).json({ error: 'internal_error', details: err.message });
+  }
+});
+
+// DELETE: Remove a route
+app.delete('/api/routes', async (req, res) => {
+  try {
+    const { airlineId, sourceAirportId, destinationAirportId, equipment } = req.body;
+
+    console.log(`🗑️  Deleting route: AirlineID=${airlineId}, SourceID=${sourceAirportId}, DestID=${destinationAirportId}, Equipment=${equipment}`);
+
+    // Validate required fields for composite key
+    if (!airlineId || !sourceAirportId || !destinationAirportId || !equipment) {
+      console.log('❌ Validation failed: Missing composite key fields');
+      return res.status(400).json({
+        error: 'Missing required fields for route identification: airlineId, sourceAirportId, destinationAirportId, equipment'
+      });
+    }
+
+    const sql = `DELETE FROM Routes
+      WHERE AirlineID = $1
+        AND SourceAirportID = $2
+        AND DestinationAirportID = $3
+        AND Equipment = $4
+      RETURNING *`;
+
+    const params = [airlineId, sourceAirportId, destinationAirportId, equipment];
+    const result = await query(sql, params);
+
+    if (result.rows.length === 0) {
+      console.log('❌ Route not found');
+      res.status(404).json({ error: 'Route not found' });
+    } else {
+      console.log(`✅ Route deleted successfully:`, result.rows[0]);
+      res.json({ message: 'Route deleted', route: result.rows[0] });
+    }
+  } catch (err) {
+    console.error('❌ Error deleting route:', err.message);
+    res.status(500).json({ error: 'internal_error', details: err.message });
   }
 });
 
