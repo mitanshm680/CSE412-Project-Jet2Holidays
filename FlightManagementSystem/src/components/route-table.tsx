@@ -14,9 +14,11 @@ interface RouteTableProps {
   airlines: Airline[];
   airports: Airport[];
   planeTypes: PlaneType[];
+  allRoutes?: Route[];
+  onAllRoutesChange?: (routes: Route[]) => void;
 }
 
-export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTypes }: RouteTableProps) {
+export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTypes, allRoutes, onAllRoutesChange }: RouteTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
@@ -74,12 +76,52 @@ export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTy
     setSelectedRows(newSelected);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedRows.size === 0) return;
-    const updatedRoutes = routes.filter(route => !selectedRows.has(route.id));
-    onRoutesChange(updatedRoutes);
-    setSelectedRows(new Set());
-    setSelectAll(false);
+
+    try {
+      // Delete each selected route via API
+      const deletePromises = Array.from(selectedRows).map(async (routeId) => {
+        const route = routes.find(r => r.id === routeId);
+        if (!route) return;
+
+        const response = await fetch('/api/routes', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            airlineId: Number(route.airlineId),
+            sourceAirportId: Number(route.sourceAirportId),
+            destinationAirportId: Number(route.destinationAirportId),
+            equipment: route.equipment,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to delete route');
+        }
+      });
+
+      await Promise.all(deletePromises);
+
+      // Update local state after successful deletion
+      const updatedRoutes = routes.filter(route => !selectedRows.has(route.id));
+      onRoutesChange(updatedRoutes);
+
+      // Also update allRoutes if provided
+      if (allRoutes && onAllRoutesChange) {
+        const updatedAllRoutes = allRoutes.filter(route => !selectedRows.has(route.id));
+        onAllRoutesChange(updatedAllRoutes);
+      }
+
+      setSelectedRows(new Set());
+      setSelectAll(false);
+
+      console.log(`Successfully deleted ${selectedRows.size} route(s)`);
+    } catch (error) {
+      console.error('Error deleting routes:', error);
+      alert('Failed to delete routes. Check console for details.');
+    }
   };
 
   const handleInsert = () => {
@@ -92,14 +134,77 @@ export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTy
     setDialogOpen(true);
   };
 
-  const handleSave = (route: Route) => {
-    if (editingRoute) {
-      // Update existing route
-      const updatedRoutes = routes.map(r => r.id === route.id ? route : r);
-      onRoutesChange(updatedRoutes);
-    } else {
-      // Insert new route
-      onRoutesChange([...routes, route]);
+  const handleSave = async (route: Route) => {
+    try {
+      if (editingRoute) {
+        // Update existing route via PUT API
+        const response = await fetch('/api/routes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            airlineId: Number(route.airlineId),
+            sourceAirportId: Number(route.sourceAirportId),
+            destinationAirportId: Number(route.destinationAirportId),
+            equipment: route.equipment,
+            newStops: route.stops,
+            newCodeshare: route.codeshare || null,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to update route');
+        }
+
+        const result = await response.json();
+        console.log('Route updated:', result);
+
+        // Update local state
+        const updatedRoutes = routes.map(r => r.id === route.id ? route : r);
+        onRoutesChange(updatedRoutes);
+
+        // Also update allRoutes if provided
+        if (allRoutes && onAllRoutesChange) {
+          const updatedAllRoutes = allRoutes.map(r => r.id === route.id ? route : r);
+          onAllRoutesChange(updatedAllRoutes);
+        }
+      } else {
+        // Insert new route via POST API
+        const response = await fetch('/api/routes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            airline: route.airline,
+            airlineId: Number(route.airlineId),
+            sourceAirport: route.sourceAirport,
+            sourceAirportId: Number(route.sourceAirportId),
+            destinationAirport: route.destinationAirport,
+            destinationAirportId: Number(route.destinationAirportId),
+            codeshare: route.codeshare || null,
+            stops: route.stops,
+            equipment: route.equipment,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create route');
+        }
+
+        const result = await response.json();
+        console.log('Route created:', result);
+
+        // Update local state
+        onRoutesChange([...routes, route]);
+
+        // Also update allRoutes if provided
+        if (allRoutes && onAllRoutesChange) {
+          onAllRoutesChange([...allRoutes, route]);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving route:', error);
+      alert(`Failed to ${editingRoute ? 'update' : 'create'} route: ${error}`);
     }
   };
 

@@ -63,6 +63,7 @@ export default function App() {
     load();
   }, []);
 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
@@ -77,7 +78,15 @@ export default function App() {
         {/* Main Content */}
         <div className="space-y-6">
           <FlightSearch onSearch={setSearchResults} allRoutes={allRoutes} airlines={airlines} airports={airports} planeTypes={planeTypes} />
-          <RouteTable routes={searchResults} onRoutesChange={setSearchResults} airlines={airlines} airports={airports} planeTypes={planeTypes} />
+          <RouteTable
+            routes={searchResults}
+            onRoutesChange={setSearchResults}
+            allRoutes={allRoutes}
+            onAllRoutesChange={setAllRoutes}
+            airlines={airlines}
+            airports={airports}
+            planeTypes={planeTypes}
+          />
         </div>
       </div>
     </div>

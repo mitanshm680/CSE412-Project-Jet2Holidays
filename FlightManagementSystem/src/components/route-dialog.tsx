@@ -129,6 +129,20 @@ export function RouteDialog({
       return;
     }
 
+    // If editing an existing route, preserve the original IDs
+    if (route) {
+      const updatedRoute: Route = {
+        ...route,
+        stops: parseInt(formData.stops),
+        equipment: formData.equipment,
+        codeshare: route.codeshare || "",
+      };
+      onSave(updatedRoute);
+      onOpenChange(false);
+      return;
+    }
+
+    // For new routes, look up the IDs
     const airline = (airlines || []).find(
       (a) =>
         (a.name || '').toLowerCase() ===
@@ -149,22 +163,39 @@ export function RouteDialog({
     );
 
     if (!airline || !sourceAirport || !destAirport) {
+      console.error('Lookup failed:', {
+        airline: formData.airline,
+        foundAirline: airline,
+        sourceAirport: formData.sourceAirport,
+        foundSource: sourceAirport,
+        destAirport: formData.destinationAirport,
+        foundDest: destAirport,
+      });
+      alert('Failed to find airline or airport. Please select from the dropdown suggestions.');
+      return;
+    }
+
+    // Ensure IDs are valid numbers
+    if (!airline.airlineId || !sourceAirport.airportId || !destAirport.airportId) {
+      console.error('Invalid IDs:', { airline, sourceAirport, destAirport });
+      alert('Invalid airline or airport data. Please try again.');
       return;
     }
 
     const newRoute: Route = {
-      id: route?.id || Date.now().toString(),
-      airline: airline?.iata || '',
-      airlineId: String(airline?.airlineId || ''),
-      sourceAirport: sourceAirport?.iata || '',
-      sourceAirportId: String(sourceAirport?.airportId || ''),
-      destinationAirport: destAirport?.iata || '',
-      destinationAirportId: String(destAirport?.airportId || ''),
-      codeshare: route?.codeshare || "",
+      id: Date.now().toString(),
+      airline: airline.iata || '',
+      airlineId: String(airline.airlineId),
+      sourceAirport: sourceAirport.iata || '',
+      sourceAirportId: String(sourceAirport.airportId),
+      destinationAirport: destAirport.iata || '',
+      destinationAirportId: String(destAirport.airportId),
+      codeshare: "",
       stops: parseInt(formData.stops),
       equipment: formData.equipment,
     };
 
+    console.log('Creating new route:', newRoute);
     onSave(newRoute);
     onOpenChange(false);
   };
@@ -188,10 +219,11 @@ export function RouteDialog({
           <div className="space-y-2 relative">
             <Label htmlFor="airline">
               Airline <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-500 ml-2">(Select from dropdown)</span>
             </Label>
             <Input
               id="airline"
-              placeholder="Search airline..."
+              placeholder="Type to search airlines..."
               value={formData.airline}
               onChange={(e) => {
                 setFormData({
@@ -209,10 +241,9 @@ export function RouteDialog({
               }
             />
             {showAirlineSuggestions &&
-              formData.airline &&
               airlineSuggestions.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-auto">
-                  {airlineSuggestions.map((airline) => (
+                  {airlineSuggestions.slice(0, 10).map((airline) => (
                     <div
                       key={airline.airlineId}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -224,14 +255,19 @@ export function RouteDialog({
                         setShowAirlineSuggestions(false);
                       }}
                     >
-                      <div>{airline.name}</div>
+                      <div className="font-medium">{airline.name}</div>
                       <div className="text-sm text-gray-500">
-                        {airline.iata}
+                        {airline.iata} {airline.country && `• ${airline.country}`}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+            {showAirlineSuggestions && formData.airline && airlineSuggestions.length === 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg p-3 text-sm text-red-600">
+                No airlines found. Try a different search term.
+              </div>
+            )}
           </div>
 
           {/* Route Start (Origin) */}
@@ -239,10 +275,11 @@ export function RouteDialog({
             <Label htmlFor="origin">
               Route Start (Origin){" "}
               <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-500 ml-2">(Select from dropdown)</span>
             </Label>
             <Input
               id="origin"
-              placeholder="Airport code (e.g., JFK)"
+              placeholder="Type airport code or city..."
               value={formData.sourceAirport}
               onChange={(e) => {
                 setFormData({
@@ -290,10 +327,11 @@ export function RouteDialog({
             <Label htmlFor="destination">
               Route End (Destination){" "}
               <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-500 ml-2">(Select from dropdown)</span>
             </Label>
             <Input
               id="destination"
-              placeholder="Airport code (e.g., LAX)"
+              placeholder="Type airport code or city..."
               value={formData.destinationAirport}
               onChange={(e) => {
                 setFormData({
@@ -360,10 +398,11 @@ export function RouteDialog({
           <div className="space-y-2 relative">
             <Label htmlFor="equipment">
               Equipment <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-500 ml-2">(Select from dropdown)</span>
             </Label>
             <Input
               id="equipment"
-              placeholder="Search aircraft..."
+              placeholder="Type aircraft code (e.g., 737, 77W)..."
               value={formData.equipment}
               onChange={(e) => {
                 setFormData({
