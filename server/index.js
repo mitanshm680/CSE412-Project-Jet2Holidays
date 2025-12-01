@@ -193,50 +193,108 @@ app.put('/api/routes', async (req, res) => {
       airlineId,
       sourceAirportId,
       destinationAirportId,
-      equipment,
+      oldEquipment,
+      newEquipment,
       newStops,
-      newCodeshare
+      newCodeshare,
+      airline,
+      sourceAirport,
+      destinationAirport
     } = req.body;
 
-    console.log(`🔄 Updating route: AirlineID=${airlineId}, SourceID=${sourceAirportId}, DestID=${destinationAirportId}, Equipment=${equipment}`);
+    console.log(`🔄 Updating route: AirlineID=${airlineId}, SourceID=${sourceAirportId}, DestID=${destinationAirportId}, Equipment=${oldEquipment} → ${newEquipment || oldEquipment}`);
 
     // Validate required fields for composite key
-    if (!airlineId || !sourceAirportId || !destinationAirportId || !equipment) {
+    if (!airlineId || !sourceAirportId || !destinationAirportId || !oldEquipment) {
       console.log('❌ Validation failed: Missing composite key fields');
       return res.status(400).json({
-        error: 'Missing required fields for route identification: airlineId, sourceAirportId, destinationAirportId, equipment'
+        error: 'Missing required fields for route identification: airlineId, sourceAirportId, destinationAirportId, oldEquipment'
       });
     }
 
-    const sql = `UPDATE Routes
-      SET Stops = $1, Codeshare = $2
-      WHERE AirlineID = $3
-        AND SourceAirportID = $4
-        AND DestinationAirportID = $5
-        AND Equipment = $6
-      RETURNING *`;
+    // If equipment changed, we need to DELETE and INSERT (can't UPDATE primary key)
+    if (newEquipment && newEquipment !== oldEquipment) {
+      console.log(`⚠️  Equipment changed: ${oldEquipment} → ${newEquipment}. Deleting old route and inserting new one.`);
 
-    const params = [
-      newStops !== undefined ? newStops : 0,
-      newCodeshare || null,
-      airlineId,
-      sourceAirportId,
-      destinationAirportId,
-      equipment
-    ];
+      // First, delete the old route
+      const deleteSql = `DELETE FROM Routes
+        WHERE AirlineID = $1
+          AND SourceAirportID = $2
+          AND DestinationAirportID = $3
+          AND Equipment = $4
+        RETURNING *`;
 
-    const result = await query(sql, params);
+      const deleteParams = [airlineId, sourceAirportId, destinationAirportId, oldEquipment];
+      const deleteResult = await query(deleteSql, deleteParams);
 
-    if (result.rows.length === 0) {
-      console.log('❌ Route not found');
-      res.status(404).json({ error: 'Route not found' });
+      if (deleteResult.rows.length === 0) {
+        console.log('❌ Route not found');
+        return res.status(404).json({ error: 'Route not found' });
+      }
+
+      const oldRoute = deleteResult.rows[0];
+      console.log(`✅ Old route deleted:`, oldRoute);
+
+      // Then, insert the new route with updated equipment
+      const insertSql = `INSERT INTO Routes
+        (Airline, AirlineID, SourceAirport, SourceAirportID,
+         DestinationAirport, DestinationAirportID, Codeshare, Stops, Equipment)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *`;
+
+      const insertParams = [
+        airline || oldRoute.airline,
+        airlineId,
+        sourceAirport || oldRoute.sourceairport,
+        sourceAirportId,
+        destinationAirport || oldRoute.destinationairport,
+        destinationAirportId,
+        newCodeshare !== undefined ? newCodeshare : oldRoute.codeshare,
+        newStops !== undefined ? newStops : oldRoute.stops,
+        newEquipment
+      ];
+
+      const insertResult = await query(insertSql, insertParams);
+      console.log(`✅ New route inserted:`, insertResult.rows[0]);
+      res.json({ message: 'Route updated (via delete/insert)', route: insertResult.rows[0] });
     } else {
-      console.log(`✅ Route updated successfully:`, result.rows[0]);
-      res.json({ message: 'Route updated', route: result.rows[0] });
+      // Equipment didn't change, just UPDATE normally
+      const sql = `UPDATE Routes
+        SET Stops = $1, Codeshare = $2
+        WHERE AirlineID = $3
+          AND SourceAirportID = $4
+          AND DestinationAirportID = $5
+          AND Equipment = $6
+        RETURNING *`;
+
+      const params = [
+        newStops !== undefined ? newStops : 0,
+        newCodeshare || null,
+        airlineId,
+        sourceAirportId,
+        destinationAirportId,
+        oldEquipment
+      ];
+
+      const result = await query(sql, params);
+
+      if (result.rows.length === 0) {
+        console.log('❌ Route not found');
+        res.status(404).json({ error: 'Route not found' });
+      } else {
+        console.log(`✅ Route updated successfully:`, result.rows[0]);
+        res.json({ message: 'Route updated', route: result.rows[0] });
+      }
     }
   } catch (err) {
     console.error('❌ Error updating route:', err.message);
-    res.status(500).json({ error: 'internal_error', details: err.message });
+    if (err.code === '23505') {
+      res.status(409).json({ error: 'Route already exists with this equipment' });
+    } else if (err.code === '23503') {
+      res.status(400).json({ error: 'Invalid airline, airport, or equipment reference' });
+    } else {
+      res.status(500).json({ error: 'internal_error', details: err.message });
+    }
   }
 });
 
