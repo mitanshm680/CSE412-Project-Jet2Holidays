@@ -104,9 +104,7 @@ export function FlightSearch({ onSearch, allRoutes, airlines, airports, planeTyp
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Origin */}
           <div className="space-y-2">
-            <Label htmlFor="origin">
-              Origin <span className="text-red-500">*</span>
-            </Label>
+            <Label htmlFor="origin">Origin</Label>
             <Input
               id="origin"
               placeholder="City, airport code, or name"
@@ -118,9 +116,7 @@ export function FlightSearch({ onSearch, allRoutes, airlines, airports, planeTyp
 
           {/* Destination */}
           <div className="space-y-2">
-            <Label htmlFor="destination">
-              Destination <span className="text-red-500">*</span>
-            </Label>
+            <Label htmlFor="destination">Destination</Label>
             <Input
               id="destination"
               placeholder="City, airport code, or name"
