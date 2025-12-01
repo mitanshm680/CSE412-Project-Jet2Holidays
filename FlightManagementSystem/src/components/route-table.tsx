@@ -145,9 +145,14 @@ export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTy
             airlineId: Number(route.airlineId),
             sourceAirportId: Number(route.sourceAirportId),
             destinationAirportId: Number(route.destinationAirportId),
-            equipment: route.equipment,
+            oldEquipment: editingRoute.equipment, // Original equipment value
+            newEquipment: route.equipment, // New equipment value
             newStops: route.stops,
             newCodeshare: route.codeshare || null,
+            // Additional fields needed for delete/insert if equipment changes
+            airline: route.airline,
+            sourceAirport: route.sourceAirport,
+            destinationAirport: route.destinationAirport,
           }),
         });
 
