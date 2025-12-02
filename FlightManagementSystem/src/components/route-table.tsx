@@ -168,13 +168,28 @@ export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTy
         const result = await response.json();
         console.log('Route updated:', result);
 
-        // Update local state
-        const updatedRoutes = routes.map(r => r.id === route.id ? route : r);
+        // Construct the updated route from the database response
+        const dbRoute = result.route;
+        const updatedRoute: Route = {
+          id: route.id,
+          airline: dbRoute.airline || route.airline,
+          airlineId: String(dbRoute.airlineid || route.airlineId),
+          sourceAirport: dbRoute.sourceairport || route.sourceAirport,
+          sourceAirportId: String(dbRoute.sourceairportid || route.sourceAirportId),
+          destinationAirport: dbRoute.destinationairport || route.destinationAirport,
+          destinationAirportId: String(dbRoute.destinationairportid || route.destinationAirportId),
+          codeshare: dbRoute.codeshare || '',
+          stops: Number(dbRoute.stops) || 0,
+          equipment: dbRoute.equipment || route.equipment,
+        };
+
+        // Update local state with the database data
+        const updatedRoutes = routes.map(r => r.id === route.id ? updatedRoute : r);
         onRoutesChange(updatedRoutes);
 
         // Also update allRoutes if provided
         if (allRoutes && onAllRoutesChange) {
-          const updatedAllRoutes = allRoutes.map(r => r.id === route.id ? route : r);
+          const updatedAllRoutes = allRoutes.map(r => r.id === route.id ? updatedRoute : r);
           onAllRoutesChange(updatedAllRoutes);
         }
       } else {
@@ -203,12 +218,27 @@ export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTy
         const result = await response.json();
         console.log('Route created:', result);
 
-        // Update local state
-        onRoutesChange([...routes, route]);
+        // Construct the new route from the database response
+        const dbRoute = result.route;
+        const newRoute: Route = {
+          id: `${dbRoute.airlineid}-${dbRoute.sourceairportid}-${dbRoute.destinationairportid}-${dbRoute.equipment || ''}`,
+          airline: dbRoute.airline || route.airline,
+          airlineId: String(dbRoute.airlineid || route.airlineId),
+          sourceAirport: dbRoute.sourceairport || route.sourceAirport,
+          sourceAirportId: String(dbRoute.sourceairportid || route.sourceAirportId),
+          destinationAirport: dbRoute.destinationairport || route.destinationAirport,
+          destinationAirportId: String(dbRoute.destinationairportid || route.destinationAirportId),
+          codeshare: dbRoute.codeshare || '',
+          stops: Number(dbRoute.stops) || 0,
+          equipment: dbRoute.equipment || route.equipment,
+        };
+
+        // Update local state with the database data
+        onRoutesChange([...routes, newRoute]);
 
         // Also update allRoutes if provided
         if (allRoutes && onAllRoutesChange) {
-          onAllRoutesChange([...allRoutes, route]);
+          onAllRoutesChange([...allRoutes, newRoute]);
         }
       }
     } catch (error) {

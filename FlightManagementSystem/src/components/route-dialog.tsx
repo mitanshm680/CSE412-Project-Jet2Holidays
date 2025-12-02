@@ -226,12 +226,13 @@ export function RouteDialog({
           <div className="space-y-2 relative">
             <Label htmlFor="airline">
               Airline <span className="text-red-500">*</span>
-              <span className="text-xs text-gray-500 ml-2">(Select from dropdown)</span>
+              
             </Label>
             <Input
               id="airline"
               placeholder="Type to search airlines..."
               value={formData.airline}
+              disabled={!!route}
               onChange={(e) => {
                 setFormData({
                   ...formData,
@@ -282,12 +283,12 @@ export function RouteDialog({
             <Label htmlFor="origin">
               Route Start (Origin){" "}
               <span className="text-red-500">*</span>
-              <span className="text-xs text-gray-500 ml-2">(Select from dropdown)</span>
             </Label>
             <Input
               id="origin"
               placeholder="Type airport code or city..."
               value={formData.sourceAirport}
+              disabled={!!route}
               onChange={(e) => {
                 setFormData({
                   ...formData,
@@ -334,12 +335,13 @@ export function RouteDialog({
             <Label htmlFor="destination">
               Route End (Destination){" "}
               <span className="text-red-500">*</span>
-              <span className="text-xs text-gray-500 ml-2">(Select from dropdown)</span>
+              
             </Label>
             <Input
               id="destination"
               placeholder="Type airport code or city..."
               value={formData.destinationAirport}
+              disabled={!!route}
               onChange={(e) => {
                 setFormData({
                   ...formData,
