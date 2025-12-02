@@ -56,7 +56,7 @@ export default function App() {
         });
         setPlaneTypes(Array.from(pt));
       } catch (err) {
-        // Leave arrays empty — frontend can handle empty state or show helpful message
+        // Leave arrays empty - frontend can handle empty state or show helpful message
         console.error('Failed to load backend data', err);
       }
     }
