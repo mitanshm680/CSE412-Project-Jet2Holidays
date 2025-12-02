@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FlightSearch } from './components/flight-search';
 import { RouteTable } from './components/route-table';
+import { HelpButton } from './components/help-button';
 import { Plane } from 'lucide-react';
 import { Route, Airline, Airport, PlaneType } from './lib/types';
 
@@ -89,6 +90,9 @@ export default function App() {
           />
         </div>
       </div>
+
+      {/* Floating Help Button */}
+      <HelpButton />
     </div>
   );
 }
