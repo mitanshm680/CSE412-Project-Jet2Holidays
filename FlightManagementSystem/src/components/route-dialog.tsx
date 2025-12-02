@@ -129,20 +129,7 @@ export function RouteDialog({
       return;
     }
 
-    // If editing an existing route, preserve the original IDs
-    if (route) {
-      const updatedRoute: Route = {
-        ...route,
-        stops: parseInt(formData.stops),
-        equipment: formData.equipment,
-        codeshare: route.codeshare || "",
-      };
-      onSave(updatedRoute);
-      onOpenChange(false);
-      return;
-    }
-
-    // For new routes, look up the IDs
+    // Look up the IDs based on the form data (for both new and edited routes)
     const airline = (airlines || []).find(
       (a) =>
         (a.name || '').toLowerCase() ===
@@ -182,6 +169,26 @@ export function RouteDialog({
       return;
     }
 
+    // If editing an existing route, update with new values from form
+    if (route) {
+      const updatedRoute: Route = {
+        ...route,
+        airline: airline.iata || '',
+        airlineId: String(airline.airlineId),
+        sourceAirport: sourceAirport.iata || '',
+        sourceAirportId: String(sourceAirport.airportId),
+        destinationAirport: destAirport.iata || '',
+        destinationAirportId: String(destAirport.airportId),
+        stops: parseInt(formData.stops),
+        equipment: formData.equipment,
+      };
+      console.log('Updating route:', updatedRoute);
+      onSave(updatedRoute);
+      onOpenChange(false);
+      return;
+    }
+
+    // For new routes
     const newRoute: Route = {
       id: Date.now().toString(),
       airline: airline.iata || '',

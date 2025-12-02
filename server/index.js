@@ -190,31 +190,51 @@ app.post('/api/routes', async (req, res) => {
 app.put('/api/routes', async (req, res) => {
   try {
     const {
+      // Old values (to identify the route)
+      oldAirlineId,
+      oldSourceAirportId,
+      oldDestinationAirportId,
+      oldEquipment,
+      // New values
       airlineId,
       sourceAirportId,
       destinationAirportId,
-      oldEquipment,
-      newEquipment,
-      newStops,
-      newCodeshare,
+      equipment,
       airline,
       sourceAirport,
-      destinationAirport
+      destinationAirport,
+      stops,
+      codeshare
     } = req.body;
 
-    console.log(`🔄 Updating route: AirlineID=${airlineId}, SourceID=${sourceAirportId}, DestID=${destinationAirportId}, Equipment=${oldEquipment} → ${newEquipment || oldEquipment}`);
+    console.log(`🔄 Updating route: [${oldAirlineId}, ${oldSourceAirportId}, ${oldDestinationAirportId}, ${oldEquipment}] → [${airlineId}, ${sourceAirportId}, ${destinationAirportId}, ${equipment}]`);
 
-    // Validate required fields for composite key
-    if (!airlineId || !sourceAirportId || !destinationAirportId || !oldEquipment) {
-      console.log('❌ Validation failed: Missing composite key fields');
+    // Validate required fields for identifying the old route
+    if (!oldAirlineId || !oldSourceAirportId || !oldDestinationAirportId || !oldEquipment) {
+      console.log('❌ Validation failed: Missing old composite key fields');
       return res.status(400).json({
-        error: 'Missing required fields for route identification: airlineId, sourceAirportId, destinationAirportId, oldEquipment'
+        error: 'Missing required fields for route identification: oldAirlineId, oldSourceAirportId, oldDestinationAirportId, oldEquipment'
       });
     }
 
-    // If equipment changed, we need to DELETE and INSERT (can't UPDATE primary key)
-    if (newEquipment && newEquipment !== oldEquipment) {
-      console.log(`⚠️  Equipment changed: ${oldEquipment} → ${newEquipment}. Deleting old route and inserting new one.`);
+    // Validate new values
+    if (!airlineId || !sourceAirportId || !destinationAirportId || !equipment) {
+      console.log('❌ Validation failed: Missing new composite key fields');
+      return res.status(400).json({
+        error: 'Missing required fields: airlineId, sourceAirportId, destinationAirportId, equipment'
+      });
+    }
+
+    // Check if any primary key field changed
+    const primaryKeyChanged = (
+      Number(airlineId) !== Number(oldAirlineId) ||
+      Number(sourceAirportId) !== Number(oldSourceAirportId) ||
+      Number(destinationAirportId) !== Number(oldDestinationAirportId) ||
+      equipment !== oldEquipment
+    );
+
+    if (primaryKeyChanged) {
+      console.log(`⚠️  Primary key changed. Deleting old route and inserting new one.`);
 
       // First, delete the old route
       const deleteSql = `DELETE FROM Routes
@@ -224,7 +244,7 @@ app.put('/api/routes', async (req, res) => {
           AND Equipment = $4
         RETURNING *`;
 
-      const deleteParams = [airlineId, sourceAirportId, destinationAirportId, oldEquipment];
+      const deleteParams = [oldAirlineId, oldSourceAirportId, oldDestinationAirportId, oldEquipment];
       const deleteResult = await query(deleteSql, deleteParams);
 
       if (deleteResult.rows.length === 0) {
@@ -235,7 +255,7 @@ app.put('/api/routes', async (req, res) => {
       const oldRoute = deleteResult.rows[0];
       console.log(`✅ Old route deleted:`, oldRoute);
 
-      // Then, insert the new route with updated equipment
+      // Then, insert the new route with updated values
       const insertSql = `INSERT INTO Routes
         (Airline, AirlineID, SourceAirport, SourceAirportID,
          DestinationAirport, DestinationAirportID, Codeshare, Stops, Equipment)
@@ -249,30 +269,33 @@ app.put('/api/routes', async (req, res) => {
         sourceAirportId,
         destinationAirport || oldRoute.destinationairport,
         destinationAirportId,
-        newCodeshare !== undefined ? newCodeshare : oldRoute.codeshare,
-        newStops !== undefined ? newStops : oldRoute.stops,
-        newEquipment
+        codeshare !== undefined ? codeshare : oldRoute.codeshare,
+        stops !== undefined ? stops : oldRoute.stops,
+        equipment
       ];
 
       const insertResult = await query(insertSql, insertParams);
       console.log(`✅ New route inserted:`, insertResult.rows[0]);
       res.json({ message: 'Route updated (via delete/insert)', route: insertResult.rows[0] });
     } else {
-      // Equipment didn't change, just UPDATE normally
+      // Only non-primary-key fields changed, just UPDATE normally
       const sql = `UPDATE Routes
-        SET Stops = $1, Codeshare = $2
-        WHERE AirlineID = $3
-          AND SourceAirportID = $4
-          AND DestinationAirportID = $5
-          AND Equipment = $6
+        SET Airline = $1, SourceAirport = $2, DestinationAirport = $3, Stops = $4, Codeshare = $5
+        WHERE AirlineID = $6
+          AND SourceAirportID = $7
+          AND DestinationAirportID = $8
+          AND Equipment = $9
         RETURNING *`;
 
       const params = [
-        newStops !== undefined ? newStops : 0,
-        newCodeshare || null,
-        airlineId,
-        sourceAirportId,
-        destinationAirportId,
+        airline,
+        sourceAirport,
+        destinationAirport,
+        stops !== undefined ? stops : 0,
+        codeshare || null,
+        oldAirlineId,
+        oldSourceAirportId,
+        oldDestinationAirportId,
         oldEquipment
       ];
 
@@ -289,7 +312,7 @@ app.put('/api/routes', async (req, res) => {
   } catch (err) {
     console.error('❌ Error updating route:', err.message);
     if (err.code === '23505') {
-      res.status(409).json({ error: 'Route already exists with this equipment' });
+      res.status(409).json({ error: 'Route already exists with these primary key values' });
     } else if (err.code === '23503') {
       res.status(400).json({ error: 'Invalid airline, airport, or equipment reference' });
     } else {

@@ -142,17 +142,21 @@ export function RouteTable({ routes, onRoutesChange, airlines, airports, planeTy
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            // Old values (to identify the route by its composite primary key)
+            oldAirlineId: Number(editingRoute.airlineId),
+            oldSourceAirportId: Number(editingRoute.sourceAirportId),
+            oldDestinationAirportId: Number(editingRoute.destinationAirportId),
+            oldEquipment: editingRoute.equipment,
+            // New values (all fields)
             airlineId: Number(route.airlineId),
             sourceAirportId: Number(route.sourceAirportId),
             destinationAirportId: Number(route.destinationAirportId),
-            oldEquipment: editingRoute.equipment, // Original equipment value
-            newEquipment: route.equipment, // New equipment value
-            newStops: route.stops,
-            newCodeshare: route.codeshare || null,
-            // Additional fields needed for delete/insert if equipment changes
+            equipment: route.equipment,
             airline: route.airline,
             sourceAirport: route.sourceAirport,
             destinationAirport: route.destinationAirport,
+            stops: route.stops,
+            codeshare: route.codeshare || null,
           }),
         });
 
