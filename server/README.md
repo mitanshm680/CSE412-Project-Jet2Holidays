@@ -180,8 +180,3 @@ docker compose up -d
 ```
 
 Then set `server/.env` to point at the composed container (if port forwarded to 5432 you can still use `localhost:5432`).
-
-If you want, I can add a dedicated `server/README.md` with troubleshooting logs or create a small `scripts/check-data.sh` to validate the dataset placement; tell me which you'd prefer.
-
----
-Last updated: 2025-11-20
